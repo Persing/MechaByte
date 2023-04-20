@@ -2,12 +2,11 @@ import json
 
 import discord
 from discord.ext import commands
-from discord.ext.commands import bot
 
 import sen_cmp_api as sc
 
 
-class MechaByte:
+class MechaByte(commands.Cog):
     def __init__(self, store, discord_token, openai):
         self.store = store
         self.discord_token = discord_token
@@ -63,7 +62,7 @@ class MechaByte:
             print(f"Error: {e}")
             await ctx.send("Oops, something went wrong. Please try again later.")
 
-    @bot.command(name='help', help='Get help from the bot.')
+    @commands.command(name='help', help='Get help from the bot.')
     async def help(self, ctx):
         print(f"Received command from {ctx.author}: {ctx.message.content}")
         try:
@@ -73,7 +72,7 @@ class MechaByte:
             print(f"Error: {e}")
             await ctx.send("Oops, something went wrong. Please try again later.")
 
-    @bot.command(name='add', help='Set a Question Answer pair for the bot.')
+    @commands.command(name='add', help='Set a Question Answer pair for the bot.')
     async def add(self, ctx, *, qa_string):
         print(f"Received command from {ctx.author}: {ctx.message.content}")
 
@@ -95,7 +94,7 @@ class MechaByte:
             print(f"Error: {e}")
             await ctx.send("Oops, something went wrong. Please try again later.")
 
-    @bot.command(name='get', help='Get a Question Answer pair from the bot.')
+    @commands.command(name='get', help='Get a Question Answer pair from the bot.')
     async def get_all(self, ctx):
         print(f"Received command from {ctx.author}: {ctx.message.content}")
 
@@ -112,7 +111,7 @@ class MechaByte:
             print(f"Error: {e}")
             await ctx.send("Oops, something went wrong. Please try again later.")
 
-    @bot.command(name='delete', help='Delete a Question Answer pair from the knowledge base.')
+    @commands.command(name='delete', help='Delete a Question Answer pair from the knowledge base.')
     async def delete(self, ctx, *, question):
         print(f"Received command from {ctx.author}: {ctx.message.content}")
         try:
@@ -127,7 +126,7 @@ class MechaByte:
             print(f"Error: {e}")
             await ctx.send("Oops, something went wrong. Please try again later.")
 
-    @bot.command(name='clear', help='Clear the knowledge base.')
+    @commands.command(name='clear', help='Clear the knowledge base.')
     async def clear(self, ctx):
         print(f"Received command from {ctx.author}: {ctx.message.content}")
         try:
@@ -155,6 +154,6 @@ class MechaByte:
             print(f"Error: {e}")
             await ctx.send("Oops, something went wrong. Please try again later.")
 
-    @bot.event
+    @commands.Cog.listener()
     async def on_ready(self):
         print(f'{self.bot.user.name} has connected to Discord!')
