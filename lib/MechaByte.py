@@ -1,78 +1,65 @@
 import json
+from typing import List
 
 import discord
+from discord import app_commands
 from discord.ext import commands
 
-import sen_cmp_api as sc
+import lib.sen_cmp_api as sc
 
 
 class MechaByte(commands.Cog):
-    def __init__(self, store, discord_token, openai):
+    def __init__(self, store):
         self.store = store
-        self.discord_token = discord_token
-        self.openai = openai
         self.response_gen = sc.SentenceComparator(store)
+        # self.bot = bot
 
-        # Set up Discord bot
-        intents = discord.Intents.all()
-        # intents.messages = True
-        self.bot = commands.Bot(command_prefix=commands.when_mentioned_or('!'), intents=intents)
+    # @commands.Cog.listener('on_message')
+    # async def on_message(self, message):
+    #     # If the message is from the bot itself, ignore it.
+    #     if message.author == self.user:
+    #         return
+    #
+    #     print(f"Received message from {message.author}: {message.content}")
 
-    @commands.Cog.listener('on_message')
-    async def on_message(self, message):
-        # If the message is from the bot itself, ignore it.
-        if message.author == self.bot.user:
-            return
+    async def questions_autocomplete(self,
+                                     interaction: discord.Interaction,
+                                     current: str
+                                     ) -> List[app_commands.Choice[str]]:
+        questions = self.store.get_all_keys()
+        print(questions)
+        return [
+            app_commands.Choice(name=question, value=question)
+            for question in questions if current.lower() in question.lower()
+        ]
 
-        print(f"Received message from {message.author}: {message.content}")
-
-    # Define a helper function for generating sarcastic responses
-    async def generate_sarcastic_response(self, prompt):
-        print(f"Generating response to: {prompt}")
-        response = self.openai.Completion.create(
-            model="text-davinci-003",
-            prompt="Marv is a chatbot that reluctantly answers questions with sarcastic and witty responses:\n\nYou: How many pounds are in a kilogram?\nMarv: This again? There are 2.2 pounds in a kilogram. Please make a note of this.\nYou: What does HTML stand for?\nMarv: Was Google too busy? Hypertext Markup Language. The T is for try to ask better questions in the future.\nYou: When did the first airplane fly?\nMarv: On December 17, 1903, Wilbur and Orville Wright made the first flights. I wish they’d come and take me away.\nYou: What is the meaning of life?\nMarv: I’m not sure. I’ll ask my friend Google.\nYou: " + prompt + "\nMarv:",
-            temperature=0.5,
-            max_tokens=60,
-            top_p=0.3,
-            frequency_penalty=0.5,
-            presence_penalty=0.0
-        )
-
-        return response.choices[0].text.strip()
-
-    # Define the bot command
-    @commands.command(name='ask', help='Ask the bot a question and it will respond sarcastically.')
-    async def ask(self, ctx, *, question):
-        print(f"Received command from {ctx.author}: {ctx.message.content}")
-        try:
-            response = await self.response_gen.generate_sarcastic_response(question)
-            await ctx.send(response)
-        except Exception as e:
-            print(f"Error: {e}")
-            await ctx.send("Oops, something went wrong. Please try again later.")
-
-    @commands.command(name='re', help='Get help from the bot.')
-    async def re(self, ctx, *, question):
-        print(f"Received command from {ctx.author}: {ctx.message.content}")
+    @app_commands.command(name='re')
+    @app_commands.autocomplete(question=questions_autocomplete)
+    async def re(self, interaction: discord.Interaction, question: str):
+        print(f"Received command from {interaction.user}: {question}")
         try:
             response = await self.response_gen.get_response(question)
-            await ctx.send(response)
+            await interaction.response.send_message(content=response)
         except Exception as e:
             print(f"Error: {e}")
-            await ctx.send("Oops, something went wrong. Please try again later.")
+            await interaction.response.send_message(content="Oops, something went wrong. Please try again later.")
 
-    @commands.command(name='help', help='Get help from the bot.')
-    async def help(self, ctx):
-        print(f"Received command from {ctx.author}: {ctx.message.content}")
-        try:
-            response = "I am a bot that can answer your questions. Use '!re' at the start of your message to get a response. More features coming soon! In the meantime, you can check the pinned comments in this thread for a lot of helpful info."
-            await ctx.send(response)
-        except Exception as e:
-            print(f"Error: {e}")
-            await ctx.send("Oops, something went wrong. Please try again later.")
+    async def fruit_autocomplete(self,
+            interaction: discord.Interaction,
+            current: str,
+    ) -> List[app_commands.Choice[str]]:
+        fruits = ['Banana', 'Pineapple', 'Apple', 'Watermelon', 'Melon', 'Cherry']
+        return [
+            app_commands.Choice(name=fruit, value=fruit)
+            for fruit in fruits if current.lower() in fruit.lower()
+        ]
 
-    @commands.command(name='add', help='Set a Question Answer pair for the bot.')
+    @app_commands.command()
+    @app_commands.autocomplete(fruit=fruit_autocomplete)
+    async def fruits(self, interaction: discord.Interaction, fruit: str):
+        await interaction.response.send_message(f'Your favourite fruit seems to be {fruit}')
+
+    @commands.command(name='add')
     async def add(self, ctx, *, qa_string):
         print(f"Received command from {ctx.author}: {ctx.message.content}")
 
@@ -94,7 +81,7 @@ class MechaByte(commands.Cog):
             print(f"Error: {e}")
             await ctx.send("Oops, something went wrong. Please try again later.")
 
-    @commands.command(name='get', help='Get a Question Answer pair from the bot.')
+    @app_commands.command(name='get')
     async def get_all(self, ctx):
         print(f"Received command from {ctx.author}: {ctx.message.content}")
 
@@ -135,8 +122,8 @@ class MechaByte(commands.Cog):
             await ctx.send(response)
 
             # Wait for the user's response
-            def check(msg):
-                return msg.author == ctx.author and msg.channel == ctx.channel
+            def check(msg1):
+                return msg1.author == ctx.author and msg1.channel == ctx.channel
 
             msg = await self.bot.wait_for('message', check=check)
 
@@ -156,4 +143,6 @@ class MechaByte(commands.Cog):
 
     @commands.Cog.listener()
     async def on_ready(self):
-        print(f'{self.bot.user.name} has connected to Discord!')
+        print('Connected to Discord!')
+
+        from discord.ext.commands import is_owner, Context
