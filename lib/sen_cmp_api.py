@@ -1,3 +1,5 @@
+import logging
+
 import requests
 
 API_URL = "https://api-inference.huggingface.co/models/sentence-transformers/all-MiniLM-L6-v2"
@@ -14,7 +16,7 @@ class SentenceComparator:
         self.store = sentence_key_store
 
     async def get_response(self, question):
-        print(f"Generating response to: {question}")
+        logging.info(f"Generating response to: {question}")
         questions = self.store.get_all_keys()
         output = query({
             "inputs": {
@@ -23,6 +25,6 @@ class SentenceComparator:
             },
         })
         # get the max index
-        print(output)
+        logging.debug(output)
         max_index = output.index(max(output))
         return self.store.get(questions[max_index])

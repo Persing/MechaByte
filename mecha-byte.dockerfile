@@ -3,4 +3,4 @@ RUN mkdir /app
 ADD . /app
 WORKDIR /app
 RUN pip install -r requirements.txt
-CMD ["python", "app.py", ${DISCORD_TOKEN}, ${OPENAI_API_KEY}]
+CMD ["python", "app.py", "${DISCORD_TOKEN}", "${HF_TOKEN}"]

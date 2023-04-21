@@ -5,8 +5,15 @@ import discord
 from discord.ext import commands
 from discord.ext.commands import is_owner, Context
 
+from lib import AppLogger
 from lib.MechaByte import MechaByte
 from lib.key_store import KeyValueStore
+
+import logging
+
+# Set up logging
+AppLogger.setup_logger()
+
 
 # Load API keys
 DISCORD_TOKEN = os.getenv('DISCORD_TOKEN')
@@ -17,7 +24,7 @@ store = KeyValueStore('store.pkl')
 # Set up Discord bot
 intents = discord.Intents.all()
 bot = commands.Bot(command_prefix=commands.when_mentioned_or('!'), intents=intents, application_id=1098609791917629441)
-asyncio.run(bot.add_cog(MechaByte(store)))
+asyncio.run(bot.add_cog(MechaByte(bot, store)))
 
 
 @bot.command(name='sync', help='Sync commands with Discord. (Owner only)')

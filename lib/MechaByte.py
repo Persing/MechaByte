@@ -1,4 +1,6 @@
+import asyncio
 import json
+import logging
 from typing import List
 
 import discord
@@ -9,25 +11,17 @@ import lib.sen_cmp_api as sc
 
 
 class MechaByte(commands.Cog):
-    def __init__(self, store):
+    def __init__(self, bot, store):
+        self.bot = bot
         self.store = store
         self.response_gen = sc.SentenceComparator(store)
-        # self.bot = bot
-
-    # @commands.Cog.listener('on_message')
-    # async def on_message(self, message):
-    #     # If the message is from the bot itself, ignore it.
-    #     if message.author == self.user:
-    #         return
-    #
-    #     print(f"Received message from {message.author}: {message.content}")
 
     async def questions_autocomplete(self,
                                      interaction: discord.Interaction,
                                      current: str
                                      ) -> List[app_commands.Choice[str]]:
         questions = self.store.get_all_keys()
-        print(questions)
+        logging.debug(questions)
         return [
             app_commands.Choice(name=question, value=question)
             for question in questions if current.lower() in question.lower()
@@ -36,12 +30,12 @@ class MechaByte(commands.Cog):
     @app_commands.command(name='re')
     @app_commands.autocomplete(question=questions_autocomplete)
     async def re(self, interaction: discord.Interaction, question: str):
-        print(f"Received command from {interaction.user}: {question}")
+        logging.info(f"Received command from {interaction.user}: {question}")
         try:
             response = await self.response_gen.get_response(question)
             await interaction.response.send_message(content=response)
         except Exception as e:
-            print(f"Error: {e}")
+            logging.error(f"Error: {e}")
             await interaction.response.send_message(content="Oops, something went wrong. Please try again later.")
 
     async def fruit_autocomplete(self,
@@ -61,7 +55,7 @@ class MechaByte(commands.Cog):
 
     @commands.command(name='add')
     async def add(self, ctx, *, qa_string):
-        print(f"Received command from {ctx.author}: {ctx.message.content}")
+        logging.info(f"Received command from {ctx.author}: {ctx.message.content}")
 
         # Parse the question and answer from the message
         try:
@@ -78,12 +72,12 @@ class MechaByte(commands.Cog):
             response = "Successfully added question to my knowledge base."
             await ctx.send(response)
         except Exception as e:
-            print(f"Error: {e}")
+            logging.error(f"Error: {e}")
             await ctx.send("Oops, something went wrong. Please try again later.")
 
     @app_commands.command(name='get')
     async def get_all(self, ctx):
-        print(f"Received command from {ctx.author}: {ctx.message.content}")
+        logging.info(f"Received command from {ctx.author}: {ctx.message.content}")
 
         try:
             # Get all the questions and answers from the key-value store
@@ -95,12 +89,12 @@ class MechaByte(commands.Cog):
 
             await ctx.send(response)
         except Exception as e:
-            print(f"Error: {e}")
+            logging.error(f"Error: {e}")
             await ctx.send("Oops, something went wrong. Please try again later.")
 
     @commands.command(name='delete', help='Delete a Question Answer pair from the knowledge base.')
     async def delete(self, ctx, *, question):
-        print(f"Received command from {ctx.author}: {ctx.message.content}")
+        logging.info(f"Received command from {ctx.author}: {ctx.message.content}")
         try:
             # Delete the question and answer from the key-value store
             result = self.store.delete(question)
@@ -110,26 +104,31 @@ class MechaByte(commands.Cog):
                 response = "I don't know that question. I have not removed anything from my knowledge base."
             await ctx.send(response)
         except Exception as e:
-            print(f"Error: {e}")
+            logging.error(f"Error: {e}")
             await ctx.send("Oops, something went wrong. Please try again later.")
 
     @commands.command(name='clear', help='Clear the knowledge base.')
     async def clear(self, ctx):
-        print(f"Received command from {ctx.author}: {ctx.message.content}")
+        logging.info(f"Received command from {ctx.author}: {ctx.message.content}")
         try:
             # Prompt the user for confirmation
             response = "Are you sure you want to clear my knowledge base? This action cannot be undone. Reply 'yes' to confirm, or anything else to cancel."
-            await ctx.send(response)
+            await ctx.reply(response)
 
             # Wait for the user's response
             def check(msg1):
                 return msg1.author == ctx.author and msg1.channel == ctx.channel
 
-            msg = await self.bot.wait_for('message', check=check)
+            try:
+                msg = await self.bot.wait_for('message', timeout=15.0, check=check)
+            except asyncio.TimeoutError:
+                response = "Okay, I will not clear my knowledge base."
+                await ctx.send(response)
+                return
 
             if msg.content.lower() == 'yes':
                 # Clear the key-value store
-                self.store.clear()
+                self.store.delete_all()
 
                 response = "Successfully cleared my knowledge base."
                 await ctx.send(response)
@@ -138,11 +137,11 @@ class MechaByte(commands.Cog):
                 await ctx.send(response)
 
         except Exception as e:
-            print(f"Error: {e}")
+            logging.error(f"Error: {e}")
             await ctx.send("Oops, something went wrong. Please try again later.")
 
     @commands.Cog.listener()
     async def on_ready(self):
-        print('Connected to Discord!')
+        logging.info('Connected to Discord!')
 
         from discord.ext.commands import is_owner, Context
