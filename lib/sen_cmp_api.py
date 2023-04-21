@@ -3,7 +3,7 @@ import logging
 import requests
 
 API_URL = "https://api-inference.huggingface.co/models/sentence-transformers/all-MiniLM-L6-v2"
-headers = {"Authorization": "Bearer ***REMOVED***"}
+headers = {"Authorization": "Bearer "}
 
 
 def query(payload):
