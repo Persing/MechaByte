@@ -1,9 +1,10 @@
 import logging
+import os
 
 import requests
 
 API_URL = "https://api-inference.huggingface.co/models/sentence-transformers/all-MiniLM-L6-v2"
-headers = {"Authorization": "Bearer "}
+headers = {"Authorization": f"Bearer {os.getenv('HF_TOKEN')}"}
 
 
 def query(payload):
