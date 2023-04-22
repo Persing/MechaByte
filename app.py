@@ -5,11 +5,9 @@ import discord
 from discord.ext import commands
 from discord.ext.commands import is_owner, Context
 
-from lib import AppLogger
-from lib.MechaByte import MechaByte
-from lib.key_store import KeyValueStore
-
-import logging
+from MechaByte import AppLogger
+from MechaByte.MechaByte import MechaByte
+from MechaByte.key_store import KeyValueStore
 
 # Set up logging
 AppLogger.setup_logger()
