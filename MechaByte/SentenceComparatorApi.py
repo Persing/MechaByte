@@ -25,7 +25,7 @@ class SentenceComparator:
 
         # Check if any of the questions match exactly
         if question in questions:
-            return self.store.get(guild_id, question, question)
+            return self.store.get[guild_id]["question"][question]
 
         output = query({
             "inputs": {

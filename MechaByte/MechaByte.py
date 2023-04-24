@@ -7,11 +7,13 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 
-import MechaByte.sen_cmp_api as sc
+import MechaByte.SentenceComparatorApi as sc
+import MechaByte.MechaByteImpl as mb
 
 
 class MechaByte(commands.Cog):
     def __init__(self, bot, store):
+        self.impl = mb.MechaByteImpl(bot, store)
         self.bot = bot
         self.store = store
         self.response_gen = sc.SentenceComparator(store)
@@ -29,57 +31,58 @@ class MechaByte(commands.Cog):
 
     @app_commands.command(name='ask')
     @app_commands.autocomplete(question=questions_autocomplete)
-    async def re(self, interaction: discord.Interaction, question: str):
+    async def ask(self, interaction: discord.Interaction, question: str):
         logging.info(f"Received command from {interaction.user}: {question}")
-        try:
-            response = await self.response_gen.get_response(interaction.guild_id, question)
-            await interaction.response.send_message(content=response)
-        except Exception as e:
-            logging.error(f"Error: {e}")
-            await interaction.response.send_message(content="Oops, something went wrong. Please try again later.")
+        await interaction.response.send_message(self.impl.ask_impl(interaction.guild_id, question))
+        # try:
+        #     response = await self.response_gen.get_response(interaction.guild_id, question)
+        #     await interaction.response.send_message(content=response)
+        # except Exception as e:
+        #     logging.error(f"Error: {e}")
+        #     await interaction.response.send_message(content="Oops, something went wrong. Please try again later.")
 
     @commands.command(name='add')
     async def add(self, ctx, *, qa_string):
         logging.info(f"Received command from {ctx.author}: {ctx.message.content}")
 
         # Parse the question and answer from the message
-        try:
-            qa_data = json.loads(qa_string)
-        except ValueError:
-            await ctx.send("Oops, I couldn't parse your question and answer. Please try again.")
-            return
-
-        try:
-            # Store the question and answer in the key-value store
-            for key, value in qa_data.items():
-                self.store.set(ctx.guild.id, question, key, value)
-
-            response = "Successfully added question to my knowledge base."
-            await ctx.send(response)
-        except Exception as e:
-            logging.error(f"Error: {e}")
-            await ctx.send("Oops, something went wrong. Please try again later.")
+        # try:
+        #     qa_data = json.loads(qa_string)
+        # except ValueError:
+        #     await ctx.send("Oops, I couldn't parse your question and answer. Please try again.")
+        #     return
+        #
+        # try:
+        #     # Store the question and answer in the key-value store
+        #     for key, value in qa_data.items():
+        #         self.store.set(ctx.guild.id, question, key, value)
+        #
+        #     response = "Successfully added question to my knowledge base."
+        #     await ctx.send(response)
+        # except Exception as e:
+        #     logging.error(f"Error: {e}")
+        #     await ctx.send("Oops, something went wrong. Please try again later.")
 
     @app_commands.command(name='get')
     async def get_all(self, interaction: discord.Interaction):
         logging.info(f"Received command from {interaction.user}: GETALL")
-
-        try:
-            # Get all the questions and answers from the key-value store
-            qa_data = self.store.get_all_keys(interaction.guild.id, "question")
-
-            if len(qa_data) == 0:
-                await interaction.response.send_message("I haven't learned anything yet.")
-                return
-
-            response = "Here are all the questions and answers I know:\n"
-            for key in qa_data:
-                response += f"{key}\n"
-
-            await interaction.response.send_message(response)
-        except Exception as e:
-            logging.error(f"Error: {e}")
-            await interaction.response.send_message("Oops, something went wrong. Please try again later.")
+        await interaction.response.send_message(self.impl.get_impl(interaction.guild_id))
+        # try:
+        #     # Get all the questions and answers from the key-value store
+        #     qa_data = self.store.get_all_keys(interaction.guild.id, "question")
+        #
+        #     if len(qa_data) == 0:
+        #         await interaction.response.send_message("I haven't learned anything yet.")
+        #         return
+        #
+        #     response = "Here are all the questions and answers I know:\n"
+        #     for key in qa_data:
+        #         response += f"{key}\n"
+        #
+        #     await interaction.response.send_message(response)
+        # except Exception as e:
+        #     logging.error(f"Error: {e}")
+        #     await interaction.response.send_message("Oops, something went wrong. Please try again later.")
 
     @commands.command(name='delete', help='Delete a Question Answer pair from the knowledge base.')
     async def delete(self, ctx, *, question):
